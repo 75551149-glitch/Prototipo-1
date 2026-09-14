@@ -66,4 +66,12 @@ def home():
                         <th>Voltaje Real</th>
                         <th>Ángulo de Fase</th>
                     </tr>
-                    
+                    {filas_tabla}
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+        return render_template_string(html_template)
+    except Exception as e:
+        return f"Error en la simulación: {str(e)}", 500
