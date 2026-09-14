@@ -6,75 +6,67 @@ import plotly.graph_objects as go
 app = Flask(__name__)
 
 @app.route('/')
-def home():
+def index(): # Cambiado a index para cumplir con las especificaciones de Vercel
     try:
         # 1. Cargar y solucionar la red del sistema IEEE de 9 barras
         net = pn.case9()
         pp.runpp(net, algorithm="nr")
         
-        # Mapeo de índices de pandapower a nombres del diagrama original
         nombres_barras = {
             0: "Bus 1", 1: "Bus 2", 2: "Bus 3",
             3: "Bus 4", 4: "Bus 5", 5: "Bus 6",
             6: "Bus 7", 7: "Bus 8", 8: "Bus 9"
         }
         
-        # Coordenadas (X, Y) ajustadas para emular la geometría de PowerFactory
+        # Coordenadas ajustadas para emular la geometría de PowerFactory
         posiciones = {
-            0: (0, -3),   # Bus 1 (Abajo - G1)
-            1: (-3, 2),   # Bus 2 (Izquierda alta - G2)
-            2: (3, 2),    # Bus 3 (Derecha alta - G3)
+            0: (0, -3),   # Bus 1 (Abajo)
+            1: (-3, 2),   # Bus 2 (Izquierda alta)
+            2: (3, 2),    # Bus 3 (Derecha alta)
             3: (0, -1),   # Bus 4 (Centro inferior)
-            4: (-2, 0),   # Bus 5 (Izquierda media - Load A)
-            5: (2, 0),    # Bus 6 (Derecha media - Load B)
+            4: (-2, 0),   # Bus 5 (Izquierda media)
+            5: (2, 0),    # Bus 6 (Derecha media)
             6: (-2, 1.5), # Bus 7 (Izquierda superior)
-            7: (0, 2.5),  # Bus 8 (Centro superior - Load C)
+            7: (0, 2.5),  # Bus 8 (Centro superior)
             8: (2, 1.5)   # Bus 9 (Derecha superior)
         }
         
         fig = go.Figure()
 
         # 2. Dibujar líneas de transmisión y agregar etiquetas de potencia (MW / MVar)
-        # Relaciones de las líneas en case9: (from_bus, to_bus, index_linea)
         lineas_mapeo = [
-            (3, 4, 0), # Line 4-5
-            (4, 6, 1), # Line 5-7
-            (6, 7, 2), # Line 7-8
-            (7, 8, 3), # Line 8-9
-            (8, 5, 4), # Line 9-6
-            (5, 3, 5)  # Line 6-4
+            (3, 4, 0), (4, 6, 1), (6, 7, 2), 
+            (7, 8, 3), (8, 5, 4), (5, 3, 5)
         ]
         
         for u, v, idx in lineas_mapeo:
             x0, y0 = posiciones[u]
             x1, y1 = posiciones[v]
             
-            # Obtener flujos de potencia activa (MW) y reactiva (MVar) calculados
             p_mw = net.res_line.loc[idx, "p_from_mw"]
             q_mvar = net.res_line.loc[idx, "q_from_mvar"]
             loading = net.res_line.loc[idx, "loading_percent"]
             
-            # Dibujar la línea física
             fig.add_trace(go.Scatter(
                 x=[x0, x1], y=[y0, y1],
                 mode='lines',
-                line=dict(width=3, color='#64748b'),
+                line=dict(width=3, color='#475569'),
                 hoverinfo='none'
             ))
             
-            # Colocar etiqueta de texto en el punto medio de la línea
+            # Cuadro de valores en el medio de la línea (Estilo PowerFactory)
             mx, my = (x0 + x1) / 2, (y0 + y1) / 2
             fig.add_trace(go.Scatter(
                 x=[mx], y=[my],
                 mode='text',
-                text=[f"{p_mw:.1f} MW<br>{q_mvar:.1f} MVar"],
+                text=[f" P: {p_mw:.1f} MW<br> Q: {q_mvar:.1f} MVar"],
                 textposition="top center",
-                font=dict(color='#94a3b8', size=10),
+                font=dict(color='#38bdf8', size=10),
                 hoverinfo='text',
-                hovertext=f"Línea {nombres_barras[u]} a {nombres_barras[v]}<br>Carga: {loading:.2f}%"
+                hovertext=f"Línea {nombres_barras[u]} - {nombres_barras[v]}<br>Carga: {loading:.2f}%"
             ))
 
-        # 3. Dibujar transformadores (Conexiones de Generadores a la Red)
+        # 3. Dibujar transformadores (Líneas de conexión de generadores)
         trafos_mapeo = [(0, 3), (1, 6), (2, 8)]
         for u, v in trafos_mapeo:
             x0, y0 = posiciones[u]
@@ -82,13 +74,12 @@ def home():
             fig.add_trace(go.Scatter(
                 x=[x0, x1], y=[y0, y1],
                 mode='lines',
-                line=dict(width=4, color='#f59e0b', dash='dot'),
+                line=dict(width=4, color='#f59e0b', dash='dash'),
                 hoverinfo='none'
             ))
 
-        # 4. Dibujar Nodos (Barras) con cuadros informativos flotantes internos
+        # 4. Dibujar Nodos (Barras Rectangulares)
         node_x, node_y, node_text, node_color, node_labels = [], [], [], [], []
-        
         for idx, row in net.res_bus.iterrows():
             x, y = posiciones[idx]
             node_x.append(x)
@@ -100,19 +91,8 @@ def home():
             v_kv = v_pu * base_kv
             angulo = row['va_degree']
             
-            # Texto visible directamente debajo del nodo
             node_labels.append(f"<b>{nombre}</b><br>{v_pu:.3f} p.u.<br>{v_kv:.1f} kV")
-            
-            # Cuadro completo al pasar el mouse por encima
-            node_text.append(
-                f"<b>{nombre}</b><br>"
-                f"Voltaje Base: {base_kv} kV<br>"
-                f"Voltaje: {v_pu:.4f} p.u.<br>"
-                f"Voltaje Real: {v_kv:.2f} kV<br>"
-                f"Ángulo de Fase: {angulo:.2f}°"
-            )
-            
-            # El color cambia según el nivel de voltaje para simular PowerFactory
+            node_text.append(f"<b>{nombre}</b><br>Voltaje Base: {base_kv} kV<br>Ángulo: {angulo:.2f}°")
             node_color.append('#ef4444' if base_kv > 20 else '#10b981')
 
         fig.add_trace(go.Scatter(
@@ -123,24 +103,20 @@ def home():
             font=dict(color='#f8fafc', size=11),
             hoverinfo='text',
             hovertext=node_text,
-            marker=dict(color=node_color, size=20, line=dict(width=2, color='#ffffff'))
+            marker=dict(color=node_color, size=22, line=dict(width=2, color='#ffffff'), symbol='square')
         ))
 
-        # Configuración estética del lienzo del mapa unifilar
         fig.update_layout(
-            showlegend=False,
-            hovermode='closest',
-            margin=dict(b=40, l=10, r=10, t=10),
+            showlegend=False, hovermode='closest',
+            margin=dict(b=20, l=10, r=10, t=10),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            paper_bgcolor='#1e293b',
-            plot_bgcolor='#1e293b',
-            height=600
+            paper_bgcolor='#1e293b', plot_bgcolor='#1e293b', height=550
         )
         
         grafico_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
 
-        # 5. Construcción dinámica de la Tabla de Datos de las Barras
+        # 5. Tabla de Datos Estructurales Inferior
         filas_tabla = ""
         for idx, row in net.res_bus.iterrows():
             nombre_legible = nombres_barras[idx]
@@ -151,56 +127,50 @@ def home():
             <tr>
                 <td><b>{nombre_legible}</b></td>
                 <td>{base_kv:.1f} kV</td>
-                <td style="color: #38bdf8; font-weight: bold;">{row['vm_pu']:.4f}</td>
-                <td style="color: #10b981;">{voltaje_calculado_kv:.2f} kV</td>
+                <td style="color: #38bdf8; font-weight: bold;">{row['vm_pu']:.4f} p.u.</td>
+                <td style="color: #10b981; font-weight: bold;">{voltaje_calculado_kv:.2f} kV</td>
                 <td>{row['va_degree']:.2f}°</td>
             </tr>
             """
 
-        # Estructura del documento HTML unificado
         html_template = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>PowerFactory Web Clone - 9 Buses</title>
+            <title>PowerFactory - Sistema de 9 Barras</title>
             <style>
-                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 30px; margin: 0; }}
-                .main-wrapper {{ max-width: 1100px; margin: 0 auto; }}
-                header {{ text-align: center; margin-bottom: 25px; }}
-                h1 {{ color: #38bdf8; margin: 0 0 5px 0; font-size: 28px; }}
-                p {{ color: #94a3b8; font-size: 14px; margin: 0; }}
-                .card {{ background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); margin-bottom: 30px; }}
-                .card-title {{ font-size: 18px; color: #f1f5f9; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px; }}
-                table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }}
-                th, td {{ padding: 12px 16px; border: 1px solid #334155; text-align: left; }}
-                th {{ background-color: #0f172a; color: #38bdf8; font-weight: 600; }}
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; margin: 0; }}
+                .wrapper {{ max-width: 1100px; margin: 0 auto; }}
+                header {{ text-align: center; margin-bottom: 20px; }}
+                h1 {{ color: #38bdf8; margin: 0; font-size: 26px; }}
+                .card {{ background: #1e293b; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 25px; }}
+                .title {{ font-size: 16px; color: #cbd5e1; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 5px; }}
+                table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+                th, td {{ padding: 10px 14px; border: 1px solid #334155; text-align: left; }}
+                th {{ background-color: #0f172a; color: #38bdf8; }}
                 tr:nth-child(even) {{ background-color: #1e293b; }}
-                tr:hover {{ background-color: #334155; }}
             </style>
         </head>
         <body>
-            <div class="main-wrapper">
+            <div class="wrapper">
                 <header>
-                    <h1>Simulador Unifilar: Sistema IEEE de 9 Barras</h1>
-                    <p>Réplica interactiva de flujos de potencia y tensiones inspirada en DIgSILENT PowerFactory.</p>
+                    <h1>Sistema de Potencia IEEE de 9 Barras</h1>
                 </header>
-                
                 <div class="card">
-                    <div class="card-title">📊 Diagrama de Flujo de Potencia Activa/Reactiva</div>
+                    <div class="title">📊 Diagrama Unifilar Interactivo (Valores en tiempo real)</div>
                     {grafico_html}
                 </div>
-
                 <div class="card">
-                    <div class="card-title">📋 Tabla de Datos Físicos de las Barras (Resultados Bus)</div>
+                    <div class="title">📋 Tabla de Resultados del Flujo de Carga</div>
                     <table>
                         <thead>
                             <tr>
-                                <th>Nombre de la Barra</th>
+                                <th>Barra</th>
                                 <th>Voltaje Base</th>
-                                <th>Tensión (p.u.)</th>
-                                <th>Voltaje de Operación</th>
-                                <th>Ángulo de Fase</th>
+                                <th>Voltaje (p.u.)</th>
+                                <th>Voltaje Real (kV)</th>
+                                <th>Ángulo</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -212,6 +182,9 @@ def home():
         </body>
         </html>
         """
-        return render_template_string(html_template)
+        return html_template
     except Exception as e:
-        return f"Error en el procesamiento del flujo de carga: {str(e)}", 500
+        return f"Error interno: {str(e)}", 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
