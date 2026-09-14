@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 app = Flask(__name__)
 
 @app.route('/')
-def index(): # Cambiado a index para cumplir con las especificaciones de Vercel
+def index():
     try:
         # 1. Cargar y solucionar la red del sistema IEEE de 9 barras
         net = pn.case9()
@@ -18,7 +18,7 @@ def index(): # Cambiado a index para cumplir con las especificaciones de Vercel
             6: "Bus 7", 7: "Bus 8", 8: "Bus 9"
         }
         
-        # Coordenadas ajustadas para emular la geometría de PowerFactory
+        # Coordenadas calculadas para emular la geometría original de PowerFactory
         posiciones = {
             0: (0, -3),   # Bus 1 (Abajo)
             1: (-3, 2),   # Bus 2 (Izquierda alta)
@@ -59,7 +59,7 @@ def index(): # Cambiado a index para cumplir con las especificaciones de Vercel
             fig.add_trace(go.Scatter(
                 x=[mx], y=[my],
                 mode='text',
-                text=[f" P: {p_mw:.1f} MW<br> Q: {q_mvar:.1f} MVar"],
+                text=[f"P: {p_mw:.1f} MW<br>Q: {q_mvar:.1f} MVar"],
                 textposition="top center",
                 font=dict(color='#38bdf8', size=10),
                 hoverinfo='text',
