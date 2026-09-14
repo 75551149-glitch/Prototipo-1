@@ -1,0 +1,26 @@
+import pandapower as pp
+import pandapower.networks as pn
+
+def simular_red_autonoma():
+    # 1. Cargar la topología estándar predefinida del sistema IEEE de 9 barras
+    # Esta función replica exactamente la red del diagrama: 3 generadores, 3 transformadores y 9 barras.
+    net = pn.case9()
+    
+    print("=== CONFIGURACIÓN DE LA RED ===")
+    print(f"Número de Barras (Nodos): {len(net.bus)}")
+    print(f"Número de Líneas de Transmisión: {len(net.line)}")
+    print(f"Número de Transformadores: {len(net.trafo)}")
+    print(f"Número de Generadores: {len(net.gen) + len(net.ext_grid)}")
+    
+    # 2. Ejecutar el cálculo matemático del flujo de carga por Newton-Raphson
+    pp.runpp(net, algorithm="nr")
+    
+    # 3. Desplegar los resultados de tensión en las barras principales (230 kV y 13.8 kV/18 kV o similares)
+    print("\n=== RESULTADOS DEL FLUJO DE POTENCIA EN LAS BARRAS ===")
+    for idx, row in net.res_bus.iterrows():
+        nombre_barra = net.bus.loc[idx, "name"]
+        voltaje_kv = row["vm_pu"] * net.bus.loc[idx, "vn_kv"]
+        print(f"Barra {idx+1} ({nombre_barra:<6}) -> V: {row['vm_pu']:.4f} p.u. | Real: {voltaje_kv:.2f} kV | Ángulo: {row['va_degree']:.2f}°")
+
+if __name__ == "__main__":
+    simular_red_autonoma()
