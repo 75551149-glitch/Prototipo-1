@@ -3,7 +3,6 @@ import pandapower as pp
 import pandapower.networks as pn
 import plotly.graph_objects as go
 
-# IMPORTANTE: Definir la variable global 'app' requerida por el backend de Vercel
 app = Flask(__name__)
 
 @app.route('/')
@@ -19,7 +18,7 @@ def index():
             6: "Bus 7", 7: "Bus 8", 8: "Bus 9"
         }
         
-        # Coordenadas calculadas para emular la geometría de PowerFactory
+        # Coordenadas calculadas para emular la geometría original de PowerFactory
         posiciones = {
             0: (0, -3),   # Bus 1 (Abajo)
             1: (-3, 2),   # Bus 2 (Izquierda alta)
@@ -59,12 +58,10 @@ def index():
             mx, my = (x0 + x1) / 2, (y0 + y1) / 2
             fig.add_trace(go.Scatter(
                 x=[mx], y=[my],
-                mode='text',
-                text=[f"P: {p_mw:.1f} MW<br>Q: {q_mvar:.1f} MVar"],
-                textposition="top center",
-                font=dict(color='#38bdf8', size=10),
+                mode='markers',
+                marker=dict(size=0, opacity=0), # Invisible para que solo muestre la etiqueta flotante al pasar el mouse
                 hoverinfo='text',
-                hovertext=f"Línea {nombres_barras[u]} - {nombres_barras[v]}<br>Carga: {loading:.2f}%"
+                hovertext=f"Línea {nombres_barras[u]} - {nombres_barras[v]}<br>P: {p_mw:.1f} MW<br>Q: {q_mvar:.1f} MVar<br>Carga: {loading:.2f}%"
             ))
 
         # 3. Dibujar transformadores (Líneas de conexión de generadores)
@@ -92,8 +89,8 @@ def index():
             v_kv = v_pu * base_kv
             angulo = row['va_degree']
             
-            node_labels.append(f"<b>{nombre}</b><br>{v_pu:.3f} p.u.<br>{v_kv:.1f} kV")
-            node_text.append(f"<b>{nombre}</b><br>Voltaje Base: {base_kv} kV<br>Ángulo: {angulo:.2f}°")
+            node_labels.append(nombre)
+            node_text.append(f"<b>{nombre}</b><br>Voltaje Base: {base_kv} kV<br>Tensión: {v_pu:.3f} p.u.<br>Voltaje Real: {v_kv:.1f} kV<br>Ángulo: {angulo:.2f}°")
             node_color.append('#ef4444' if base_kv > 20 else '#10b981')
 
         fig.add_trace(go.Scatter(
@@ -159,7 +156,7 @@ def index():
                     <h1>Sistema de Potencia IEEE de 9 Barras</h1>
                 </header>
                 <div class="card">
-                    <div class="title">📊 Diagrama Unifilar Interactivo (Valores en tiempo real)</div>
+                    <div class="title">📊 Diagrama Unifilar Interactivo (Pasa el cursor para ver valores MW, MVar y kV)</div>
                     {grafico_html}
                 </div>
                 <div class="card">
