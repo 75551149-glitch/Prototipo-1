@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PowerFactory Web - Sistema de 9 Barras</title>
-    <!-- Cargamos Plotly directamente desde su servidor para que nunca falle -->
+    <!-- Cargamos Plotly directamente -->
     <script src="https://plot.ly"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; margin: 0; }
@@ -61,22 +61,20 @@
     </div>
 
     <script>
-        // Coordenadas para emular la geometría de PowerFactory
         const posiciones = {
-            1: [0, -3],   // Bus 1
-            2: [-3, 2],   // Bus 2
-            3:,    // Bus 3
-            4: [0, -1],   // Bus 4
-            5: [-2, 0],   // Bus 5
-            6:,    // Bus 6
-            7: [-2, 1.5], // Bus 7
-            8: [0, 2.5],  // Bus 8
-            9: [2, 1.5]   // Bus 9
+            1: [0, -3],
+            2: [-3, 2],
+            3:,
+            4: [0, -1],
+            5: [-2, 0],
+            6:,
+            7: [-2, 1.5],
+            8: [0, 2.5],
+            9: [2, 1.5]
         };
 
         const data = [];
 
-        // 1. Dibujar líneas de transmisión con sus flujos de potencia fijos calculados
         const lineas = [
             { u: 4, v: 5, p: "30.8 MW", q: "-0.6 MVar", c: "14.2%" },
             { u: 5, v: 7, p: "-94.2 MW", q: "13.5 MVar", c: "45.1%" },
@@ -90,7 +88,6 @@
             const p0 = posiciones[l.u];
             const p1 = posiciones[l.v];
             
-            // Línea física
             data.push({
                 x: [p0[0], p1[0]], y: [p0[1], p1[1]],
                 mode: 'lines',
@@ -98,21 +95,19 @@
                 hoverinfo: 'none'
             });
 
-            // Punto interactivo flotante en el medio de la línea
             data.push({
                 x: [(p0[0] + p1[0]) / 2], y: [(p0[1] + p1[1]) / 2],
                 mode: 'markers',
                 marker: { size: 10, color: '#38bdf8', opacity: 0.7 },
                 hoverinfo: 'text',
-                text: `<b>Conexión Bus ${l.u} - Bus ${l.v}</b><br>Potencia Activa: ${l.p}<br>Potencia Reactiva: ${l.q}<br>Carga de Línea: ${l.c}`
+                text: `<b>Línea Bus ${l.u} - Bus ${l.v}</b><br>Potencia Activa: ${l.p}<br>Potencia Reactiva: ${l.q}<br>Carga: ${l.c}`
             });
         });
 
-        // 2. Dibujar transformadores (líneas discontinuas amarillas)
-        const trafos = [[1, 4], [2, 7], [3, 9]];
+        const trafos = [{u:1, v:4}, {u:2, v:7}, {u:3, v:9}];
         trafos.forEach(t => {
-            const p0 = posiciones[t[0]];
-            const p1 = posiciones[t[1]];
+            const p0 = posiciones[t.u];
+            const p1 = posiciones[t.v];
             data.push({
                 x: [p0[0], p1[0]], y: [p0[1], p1[1]],
                 mode: 'lines',
@@ -121,7 +116,6 @@
             });
         });
 
-        // 3. Dibujar Barras (Nodos)
         const barrasInfo = [
             { id: 1, name: "Bus 1", kv: "16.5 kV", pu: "1.040", real: "17.16 kV", ang: "0.00°", color: "#10b981" },
             { id: 2, name: "Bus 2", kv: "18.0 kV", pu: "1.025", real: "18.45 kV", ang: "9.28°", color: "#10b981" },
@@ -138,11 +132,11 @@
 
         barrasInfo.forEach(b => {
             const p = posiciones[b.id];
-            nodeX.append(p[0]);
-            nodeY.append(p[1]);
-            nodeLabels.append(`<b>${b.name}</b><br>${b.pu} p.u.`);
-            nodeColors.append(b.color);
-            nodeTexts.append(`<b>${b.name}</b><br>Voltaje Base: ${b.kv}<br>Tensión: ${b.pu} p.u.<br>Voltaje Real: ${b.real}<br>Ángulo de Fase: ${b.ang}`);
+            nodeX.push(p[0]);
+            nodeY.push(p[1]);
+            nodeLabels.push(b.name);
+            nodeColors.push(b.color);
+            nodeTexts.push(`<b>${b.name}</b><br>Voltaje Base: ${b.kv}<br>Tensión: ${b.pu} p.u.<br>Voltaje Real: ${b.real}<br>Ángulo: ${b.ang}`);
         });
 
         data.push({
@@ -161,7 +155,7 @@
             hovermode: 'closest',
             margin: { b: 20, l: 10, r: 10, t: 10 },
             xaxis: { showgrid: false, zeroline: false, showticklabels: false },
-            yaxis: { showgrid: false, zeroline=false, showticklabels: false },
+            yaxis: { showgrid: false, zeroline: false, showticklabels: false },
             paper_bgcolor: '#1e293b',
             plot_bgcolor: '#1e293b'
         };
