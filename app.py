@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, make_response
 import pandapower as pp
 import pandapower.networks as pn
 import plotly.graph_objects as go
@@ -59,7 +59,7 @@ def index():
             fig.add_trace(go.Scatter(
                 x=[mx], y=[my],
                 mode='markers',
-                marker=dict(size=0, opacity=0), # Invisible para que solo muestre la etiqueta flotante al pasar el mouse
+                marker=dict(size=0, opacity=0),
                 hoverinfo='text',
                 hovertext=f"Línea {nombres_barras[u]} - {nombres_barras[v]}<br>P: {p_mw:.1f} MW<br>Q: {q_mvar:.1f} MVar<br>Carga: {loading:.2f}%"
             ))
@@ -180,6 +180,10 @@ def index():
         </body>
         </html>
         """
-        return html_template
+        # IMPORTANTE: Construir respuesta HTTP correcta para obligar a Vercel a procesarlo como HTML
+        response = make_response(html_template)
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return response
+
     except Exception as e:
-        return f"Error interno: {str(e)}", 500
+        return make_response(f"Error interno: {str(e)}", 500)
