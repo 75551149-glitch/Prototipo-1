@@ -3,6 +3,7 @@ import pandapower as pp
 import pandapower.networks as pn
 import plotly.graph_objects as go
 
+# IMPORTANTE: Definir la variable global 'app' requerida por el backend de Vercel
 app = Flask(__name__)
 
 @app.route('/')
@@ -18,7 +19,7 @@ def index():
             6: "Bus 7", 7: "Bus 8", 8: "Bus 9"
         }
         
-        # Coordenadas calculadas para emular la geometría original de PowerFactory
+        # Coordenadas calculadas para emular la geometría de PowerFactory
         posiciones = {
             0: (0, -3),   # Bus 1 (Abajo)
             1: (-3, 2),   # Bus 2 (Izquierda alta)
@@ -54,7 +55,7 @@ def index():
                 hoverinfo='none'
             ))
             
-            # Cuadro de valores en el medio de la línea (Estilo PowerFactory)
+            # Cuadro de valores en el medio de la línea
             mx, my = (x0 + x1) / 2, (y0 + y1) / 2
             fig.add_trace(go.Scatter(
                 x=[mx], y=[my],
